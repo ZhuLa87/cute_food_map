@@ -1,0 +1,23 @@
+{
+	"name": "project-cf-backend",
+	"version": "1.0.0",
+	"description": "Food map backend with Express and MariaDB",
+	"main": "app/app.js",
+	"scripts": {
+		"start": "node app/app.js",
+		"dev": "nodemon app/app.js"
+	},
+	"dependencies": {
+		"body-parser": "^1.20.3",
+		"cors": "^2.8.5",
+		"dotenv": "^16.4.7",
+		"express": "^4.21.2",
+		"express-rate-limit": "^7.5.0",
+		"mariadb": "^3.4.0",
+		"swagger-jsdoc": "^6.2.8",
+		"swagger-ui-express": "^5.0.1"
+	},
+	"devDependencies": {
+		"nodemon": "^3.1.9"
+	}
+}

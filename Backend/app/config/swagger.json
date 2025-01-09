@@ -1,0 +1,505 @@
+{
+	"openapi": "3.0.0",
+	"info": {
+		"title": "Restaurant API",
+		"version": "1.0.0",
+		"description": "API documentation for the Restaurant service"
+	},
+	"servers": [
+		{
+			"url": "${SERVICE_URL}/api/v1",
+			"variables": {
+				"SERVICE_URL": {
+					"default": "localhost:3000"
+				}
+			}
+		}
+	],
+	"paths": {
+		"/restaurants": {
+			"get": {
+				"summary": "獲取所有餐廳",
+				"responses": {
+					"200": {
+						"description": "成功獲取餐廳列表",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"id": { "type": "integer" },
+											"name": { "type": "string" },
+											"address": { "type": "string" },
+											"latitude": { "type": "number" },
+											"longitude": { "type": "number" },
+											"eat_in": { "type": "integer" },
+											"takeaway": { "type": "integer" },
+											"price_range": { "type": "integer" },
+											"has_vegetarian": { "type": "integer" },
+											"menu": { "type": "string", "nullable": true }
+										}
+									}
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "無法獲取餐廳"
+					}
+				}
+			},
+			"post": {
+				"summary": "新增完整餐廳資料",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"name": { "type": "string" },
+									"address": { "type": "string" },
+									"latitude": { "type": "number" },
+									"longitude": { "type": "number" },
+									"eat_in": { "type": "integer" },
+									"takeaway": { "type": "integer" },
+									"price_range": { "type": "integer" },
+									"has_vegetarian": { "type": "integer" },
+									"menu": { "type": "string" },
+									"categories": {
+										"type": "array",
+										"items": { "type": "integer" }
+									},
+									"hours": {
+										"type": "array",
+										"items": {
+											"type": "object",
+											"properties": {
+												"day_of_week": { "type": "integer" },
+												"start_time": { "type": "string" },
+												"end_time": { "type": "string" },
+												"is_overnight": { "type": "integer" }
+											}
+										}
+									}
+								},
+								"required": [
+									"name",
+									"latitude",
+									"longitude",
+									"eat_in",
+									"takeaway",
+									"price_range",
+									"has_vegetarian"
+								]
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "成功新增餐廳",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"message": { "type": "string" }
+									}
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "無法新增餐廳"
+					}
+				}
+			}
+		},
+		"/restaurants/all": {
+			"get": {
+				"summary": "獲取所有餐廳的所有資料",
+				"responses": {
+					"200": {
+						"description": "成功獲取所有餐廳資料",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"id": { "type": "integer" },
+											"name": { "type": "string" },
+											"address": { "type": "string" },
+											"latitude": { "type": "number" },
+											"longitude": { "type": "number" },
+											"eat_in": { "type": "integer" },
+											"takeaway": { "type": "integer" },
+											"price_range": { "type": "integer" },
+											"has_vegetarian": { "type": "integer" },
+											"menu": { "type": "string" },
+											"categories": {
+												"type": "array",
+												"items": { "type": "string" }
+											},
+											"hours": {
+												"type": "array",
+												"items": {
+													"type": "object",
+													"properties": {
+														"day_of_week": { "type": "integer" },
+														"start_time": { "type": "string" },
+														"end_time": { "type": "string" },
+														"is_overnight": { "type": "integer" }
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "無法獲取餐廳資料"
+					}
+				}
+			}
+		},
+		"/restaurants/{id}": {
+			"get": {
+				"summary": "獲取指定餐廳",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"description": "餐廳ID"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "成功獲取餐廳",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"id": { "type": "integer" },
+										"name": { "type": "string" },
+										"address": { "type": "string" },
+										"latitude": { "type": "number" },
+										"longitude": { "type": "number" },
+										"eat_in": { "type": "integer" },
+										"takeaway": { "type": "integer" },
+										"price_range": { "type": "integer" },
+										"has_vegetarian": { "type": "integer" },
+										"menu": { "type": "string" },
+										"categories": {
+											"type": "array",
+											"items": { "type": "string" }
+										},
+										"hours": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"day_of_week": { "type": "integer" },
+													"start_time": { "type": "string" },
+													"end_time": { "type": "string" },
+													"is_overnight": { "type": "integer" }
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "餐廳ID格式錯誤"
+					},
+					"500": {
+						"description": "餐廳不存在"
+					}
+				}
+			}
+		},
+		"/restaurants/{id}/categories": {
+			"get": {
+				"summary": "獲取指定餐廳的類別",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"description": "餐廳ID"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "成功獲取餐廳類別",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"type": "object"
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "餐廳ID格式錯誤"
+					},
+					"500": {
+						"description": "餐廳類別不存在"
+					}
+				}
+			}
+		},
+		"/restaurants/{id}/hours": {
+			"get": {
+				"summary": "獲取指定餐廳的營業時間",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"description": "餐廳ID"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "成功獲取餐廳營業時間",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"type": "object"
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "餐廳ID格式錯誤"
+					},
+					"500": {
+						"description": "無法獲取營業時間"
+					}
+				}
+			}
+		},
+		"/restaurants/search": {
+			"get": {
+				"summary": "根據特定條件查詢餐廳",
+				"parameters": [
+					{
+						"in": "query",
+						"name": "eat_in",
+						"schema": {
+							"type": "integer",
+							"enum": [0, 1]
+						},
+						"description": "內用 (0: 否, 1: 是)"
+					},
+					{
+						"in": "query",
+						"name": "takeaway",
+						"schema": {
+							"type": "integer",
+							"enum": [0, 1]
+						},
+						"description": "外帶 (0: 否, 1: 是)"
+					},
+					{
+						"in": "query",
+						"name": "category_id",
+						"schema": {
+							"type": "array",
+							"items": {
+								"type": "integer"
+							}
+						},
+						"description": "類別 數字ID (多選)"
+					},
+					{
+						"in": "query",
+						"name": "price_range",
+						"schema": {
+							"type": "array",
+							"items": {
+								"type": "integer"
+							}
+						},
+						"description": "價格區間 (1:100以下, 2: 100-200, 3: 200以上)"
+					},
+					{
+						"in": "query",
+						"name": "has_vegetarian",
+						"schema": {
+							"type": "integer",
+							"enum": [0, 1]
+						},
+						"description": "是否提供素食 (0: 否, 1: 是)"
+					},
+					{
+						"in": "query",
+						"name": "dayOfWeek",
+						"schema": {
+							"type": "string",
+							"enum": ["1", "2", "3", "4", "5", "6", "7"]
+						},
+						"description": "星期幾 (1: 星期一, 2: 星期二, ..., 7: 星期日) (需與 time 同時提供才做營業時間的查詢)"
+					},
+					{
+						"in": "query",
+						"name": "time",
+						"schema": {
+							"type": "string",
+							"pattern": "^\\d{4}$"
+						},
+						"description": "時間 (格式: HHMM) (需與 dayOfWeek 同時提供才做營業時間的查詢)"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "成功獲取餐廳列表",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"id": { "type": "integer" },
+											"name": { "type": "string" },
+											"address": { "type": "string" },
+											"latitude": { "type": "number" },
+											"longitude": { "type": "number" },
+											"eat_in": { "type": "integer" },
+											"takeaway": { "type": "integer" },
+											"price_range": { "type": "integer" },
+											"has_vegetarian": { "type": "integer" },
+											"menu": { "type": "string" },
+											"categories": {
+												"type": "array",
+												"items": { "type": "string" }
+											},
+											"hours": {
+												"type": "array",
+												"items": {
+													"type": "object",
+													"properties": {
+														"day_of_week": { "type": "integer" },
+														"start_time": { "type": "string" },
+														"end_time": { "type": "string" },
+														"is_overnight": { "type": "integer" }
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "無法獲取餐廳"
+					}
+				}
+			}
+		},
+		"/restaurants/open": {
+			"get": {
+				"summary": "根據特定時間查詢開放的餐廳",
+				"parameters": [
+					{
+						"in": "query",
+						"name": "dayOfWeek",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"enum": ["1", "2", "3", "4", "5", "6", "7"]
+						},
+						"description": "星期幾 (1: 星期一, 2: 星期二, ..., 7: 星期日)"
+					},
+					{
+						"in": "query",
+						"name": "time",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"pattern": "^\\d{4}$"
+						},
+						"description": "時間 (格式: HHMM)"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "成功獲取開放的餐廳列表",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"id": { "type": "integer" },
+											"name": { "type": "string" },
+											"address": { "type": "string" },
+											"latitude": { "type": "number" },
+											"longitude": { "type": "number" },
+											"eat_in": { "type": "integer" },
+											"takeaway": { "type": "integer" },
+											"price_range": { "type": "integer" },
+											"has_vegetarian": { "type": "integer" },
+											"menu": { "type": "string" },
+											"categories": {
+												"type": "array",
+												"items": { "type": "string" }
+											},
+											"hours": {
+												"type": "array",
+												"items": {
+													"type": "object",
+													"properties": {
+														"day_of_week": { "type": "integer" },
+														"start_time": { "type": "string" },
+														"end_time": { "type": "string" },
+														"is_overnight": { "type": "integer" }
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "dayOfWeek 或 time 格式錯誤"
+					},
+					"500": {
+						"description": "無法獲取開放的餐廳"
+					}
+				}
+			}
+		}
+	}
+}
