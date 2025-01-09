@@ -1,0 +1,18 @@
+{
+	"name": "DataBase",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"importR": "node import_Restaurents.js data/db_Restaurents.csv",
+		"importRC": "node import_RestaurantCategories.js data/RestaurantCategories.csv"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"csv-parser": "^3.1.0",
+		"dotenv": "^16.4.7",
+		"mariadb": "^3.4.0"
+	}
+}
