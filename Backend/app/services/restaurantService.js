@@ -13,7 +13,7 @@ exports.getRestaurantById = async (id) => {
 		 FROM Restaurants r
 		 LEFT JOIN RestaurantCategories rc ON r.id = rc.restaurant_id
 		 LEFT JOIN Categories c ON rc.category_id = c.id
-		 LEFT JOIN Restaurant_hours rh ON r.id = rh.restaurant_id
+		 LEFT JOIN RestaurantHours rh ON r.id = rh.restaurant_id
 		 WHERE r.id = ?
 		 GROUP BY r.id`,
 		[id]
@@ -46,7 +46,7 @@ exports.getFilteredRestaurants = async (criteria) => {
 		FROM Restaurants r
 		LEFT JOIN RestaurantCategories rc ON r.id = rc.restaurant_id
 		LEFT JOIN Categories c ON rc.category_id = c.id
-		LEFT JOIN Restaurant_hours rh ON r.id = rh.restaurant_id
+		LEFT JOIN RestaurantHours rh ON r.id = rh.restaurant_id
 		WHERE 1=1`;
 	let params = [];
 
@@ -93,7 +93,7 @@ exports.getFilteredRestaurants = async (criteria) => {
 exports.getRestaurantHoursById = async (restaurantId) => {
 	const rows = await db.query(
 		`SELECT day_of_week, start_time, end_time, is_overnight
-		 FROM Restaurant_hours
+		 FROM RestaurantHours
 		 WHERE restaurant_id = ?`,
 		[restaurantId]
 	);
@@ -111,7 +111,7 @@ exports.getAllRestaurantData = async () => {
 		FROM Restaurants r
 		LEFT JOIN RestaurantCategories rc ON r.id = rc.restaurant_id
 		LEFT JOIN Categories c ON rc.category_id = c.id
-		LEFT JOIN Restaurant_hours rh ON r.id = rh.restaurant_id
+		LEFT JOIN RestaurantHours rh ON r.id = rh.restaurant_id
 		GROUP BY r.id
 	`);
 	return rows;
@@ -153,7 +153,7 @@ exports.addCompleteRestaurant = async (restaurant) => {
 		if (restaurant.hours && restaurant.hours.length > 0) {
 			for (const hour of restaurant.hours) {
 				await connection.query(
-					`INSERT INTO Restaurant_hours (restaurant_id, day_of_week, start_time, end_time, is_overnight)
+					`INSERT INTO RestaurantHours (restaurant_id, day_of_week, start_time, end_time, is_overnight)
 					 VALUES (?, ?, ?, ?, ?)`,
 					[
 						restaurantId,
@@ -184,7 +184,7 @@ exports.getOpenRestaurantsByTime = async (dayOfWeek, time) => {
          FROM Restaurants r
          LEFT JOIN RestaurantCategories rc ON r.id = rc.restaurant_id
          LEFT JOIN Categories c ON rc.category_id = c.id
-         LEFT JOIN Restaurant_hours rh ON r.id = rh.restaurant_id
+         LEFT JOIN RestaurantHours rh ON r.id = rh.restaurant_id
          WHERE (rh.day_of_week = ? AND rh.start_time <= ? AND rh.end_time >= ?)
             OR (rh.day_of_week = ? AND rh.is_overnight = 1 AND rh.start_time <= ?)
          GROUP BY r.id`,
