@@ -25,7 +25,7 @@ app.get("/", (req, res) => {
 	// 用於測試伺服器是否正常運作
 	res.send("Success");
 });
-app.use("/api/v1/restaurants", restaurantController);
+app.use("/v1/restaurants", restaurantController);
 
 // 啟動api伺服器
 const PORT = process.env.SERVICE_PORT || 3000;
