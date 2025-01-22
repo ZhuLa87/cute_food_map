@@ -11,6 +11,9 @@ const app = express(); // 創建express應用程式
 // 使用 CORS 中介軟體
 app.use(cors(corsOptions));
 
+// 啟用 trust proxy
+app.set("trust proxy", 2); // nginx, cloudflare
+
 // 初始化 Swagger
 initSwagger(app);
 
