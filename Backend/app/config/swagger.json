@@ -16,7 +16,7 @@
 		}
 	],
 	"paths": {
-		"/restaurants": {
+		"/v1/restaurants": {
 			"get": {
 				"summary": "獲取所有餐廳",
 				"responses": {
@@ -118,7 +118,7 @@
 				}
 			}
 		},
-		"/restaurants/all": {
+		"/v1/restaurants/all": {
 			"get": {
 				"summary": "獲取所有餐廳的所有資料",
 				"responses": {
@@ -169,7 +169,7 @@
 				}
 			}
 		},
-		"/restaurants/{id}": {
+		"/v1/restaurants/{id}": {
 			"get": {
 				"summary": "獲取指定餐廳",
 				"parameters": [
@@ -231,7 +231,7 @@
 				}
 			}
 		},
-		"/restaurants/{id}/categories": {
+		"/v1/restaurants/{id}/categories": {
 			"get": {
 				"summary": "獲取指定餐廳的類別",
 				"parameters": [
@@ -268,7 +268,7 @@
 				}
 			}
 		},
-		"/restaurants/{id}/hours": {
+		"/v1/restaurants/{id}/hours": {
 			"get": {
 				"summary": "獲取指定餐廳的營業時間",
 				"parameters": [
@@ -305,7 +305,7 @@
 				}
 			}
 		},
-		"/restaurants/search": {
+		"/v1/restaurants/search": {
 			"get": {
 				"summary": "根據特定條件查詢餐廳",
 				"parameters": [
@@ -425,7 +425,7 @@
 				}
 			}
 		},
-		"/restaurants/open": {
+		"/v1/restaurants/open": {
 			"get": {
 				"summary": "根據特定時間查詢開放的餐廳",
 				"parameters": [
