@@ -5,7 +5,7 @@ const swaggerDocument = require("./swagger.json");
 
 // 動態設置 servers 資料
 if (process.env.SERVICE_URL) {
-	swaggerDocument.servers[0].url = `${process.env.SERVICE_URL}/api/v1`;
+	swaggerDocument.servers[0].url = `${process.env.SERVICE_URL}`;
 	swaggerDocument.servers[0].variables = {};
 }
 
