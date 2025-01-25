@@ -18,7 +18,7 @@ app.set("trust proxy", 2); // nginx, cloudflare
 initSwagger(app);
 
 // 設定速率限制
-app.use(limiter);
+// app.use(limiter);
 
 // 設定body-parser
 app.use(bodyParser.json());
