@@ -15,6 +15,7 @@ services:
         ipv4_address: 10.5.0.1
     extra_hosts:
       - "host.docker.internal: change_host_ip_here"
+    restart: always
 
   backend:
     image: node:22-alpine
@@ -30,6 +31,7 @@ services:
     networks:
       food_map:
         ipv4_address: 10.5.0.2
+    restart: always
 
   mariadb:
     image: mariadb:11.4.4
@@ -46,6 +48,7 @@ services:
     networks:
       food_map:
         ipv4_address: 10.5.0.3
+    restart: always
 
 volumes:
   db_data:
