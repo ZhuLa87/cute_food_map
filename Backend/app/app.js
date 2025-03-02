@@ -3,9 +3,13 @@ const express = require("express"); // 引入express套件
 const bodyParser = require("body-parser"); // 引入body-parser套件
 const restaurantController = require("./controllers/restaurantController");
 const { initSwagger } = require("./config/swaggerConfig"); // 引入 Swagger 設定
+const cors = require("cors"); // 引入 cors 套件
 const { corsOptions, limiter, handleExit } = require("./utils/middleware"); // 引入獨立模組
 const Log = require("./utils/log");
 const app = express(); // 創建express應用程式
+
+// 使用 CORS 中介軟體
+app.use(cors(corsOptions));
 
 // 啟用 trust proxy
 app.set("trust proxy", 2); // nginx, cloudflare
