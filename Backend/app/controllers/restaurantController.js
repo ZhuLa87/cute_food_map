@@ -184,25 +184,4 @@ router.get("/:id/hours", async (req, res) => {
 	}
 });
 
-/**
- * 新增完整餐廳資料
- * @param {object} restaurant - 餐廳資料
- * @returns {object} 新增的餐廳物件
- * @throws {Error} 無法新增餐廳
- */
-router.post("/", async (req, res) => {
-	try {
-		const restaurant = req.body;
-		const newRestaurant = await restaurantService.addCompleteRestaurant(
-			restaurant
-		);
-		Log.info(`Added new restaurant from IP: ${req.ip}`);
-		res.status(201).json(newRestaurant);
-	} catch (err) {
-		Log.error(`Error adding restaurant from IP: ${req.ip}\n${err}`);
-		Log.error(err);
-		res.status(500).json({ message: "Error adding restaurant" });
-	}
-});
-
 module.exports = router;

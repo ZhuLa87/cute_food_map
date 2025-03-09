@@ -117,65 +117,6 @@ exports.getAllRestaurantData = async () => {
 	return rows;
 };
 
-exports.addCompleteRestaurant = async (restaurant) => {
-	const connection = await db.getConnection();
-	try {
-		await connection.beginTransaction();
-
-		const result = await connection.query(
-			`INSERT INTO Restaurants (name, address, latitude, longitude, eat_in, takeaway, price_range, has_vegetarian, menu)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			[
-				restaurant.name,
-				restaurant.address,
-				restaurant.latitude,
-				restaurant.longitude,
-				restaurant.eat_in,
-				restaurant.takeaway,
-				restaurant.price_range,
-				restaurant.has_vegetarian,
-				restaurant.menu,
-			]
-		);
-
-		const restaurantId = result.insertId;
-
-		if (restaurant.categories && restaurant.categories.length > 0) {
-			for (const categoryId of restaurant.categories) {
-				await connection.query(
-					`INSERT INTO RestaurantCategories (restaurant_id, category_id)
-					 VALUES (?, ?)`,
-					[restaurantId, categoryId]
-				);
-			}
-		}
-
-		if (restaurant.hours && restaurant.hours.length > 0) {
-			for (const hour of restaurant.hours) {
-				await connection.query(
-					`INSERT INTO RestaurantHours (restaurant_id, day_of_week, start_time, end_time, is_overnight)
-					 VALUES (?, ?, ?, ?, ?)`,
-					[
-						restaurantId,
-						hour.day_of_week,
-						hour.start_time,
-						hour.end_time,
-						hour.is_overnight,
-					]
-				);
-			}
-		}
-
-		await connection.commit();
-		return { message: "Successfully added restaurant" };
-	} catch (error) {
-		await connection.rollback();
-		throw error;
-	} finally {
-		connection.release();
-	}
-};
-
 exports.getOpenRestaurantsByTime = async (dayOfWeek, time) => {
 	const rows = await db.query(
 		`SELECT r.*,
