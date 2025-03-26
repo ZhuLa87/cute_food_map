@@ -57,7 +57,19 @@ http {
     send_timeout 10s;  # 設定響應發送的超時時間
 
     server {
-        listen        80;  # 設定監聽 443 端口並啟用 SSL
+        listen 443 ssl default_server;  # 設定監聽 443 端口並啟用 SSL
+        server_name _;  # 設定服務器名稱
+
+        ssl_certificate     /etc/nginx/ssl/local.crt;  # 設定 SSL 證書文件
+        ssl_certificate_key /etc/nginx/ssl/local.key;  # 設定 SSL 證書密鑰文件
+
+        ssl_reject_handshake on;    # 啟用 SSL 握手拒絕
+
+        error_log /var/log/nginx/ssl_reject_handshake.log info;  # 設定錯誤日誌文件及日誌級別
+    }
+
+    server {
+        listen        443 ssl;  # 設定監聽 443 端口並啟用 SSL
 
         server_name   zzowo.com;  # 設定服務器名稱
 
@@ -88,7 +100,7 @@ http {
     }
 
     server {
-        listen       80;  # 設定監聽 443 端口並啟用 SSL
+        listen       443 ssl;  # 設定監聽 443 端口並啟用 SSL
 
         server_name foodmap.zzowo.com;  # 設定服務器名稱
 
