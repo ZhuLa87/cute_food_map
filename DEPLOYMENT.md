@@ -24,25 +24,25 @@
 
 | 容器 | Image | 對外 Port | 說明 |
 |---|---|---|---|
-| `nginx` | nginx:alpine | 80 | 純 API 反向代理，將 `/api/` 轉發到 backend |
+| `nginx` | nginx:alpine | 8888（容器內部仍為 80） | 純 API 反向代理，將 `/api/` 轉發到 backend |
 | `backend` | node:22-alpine | 僅內部網路 | Express API 伺服器，含 Swagger UI |
 | `mariadb` | mariadb:11.4.4 | 僅內部網路 | 資料庫，資料存放於 named volume `db_data` |
 
-> `backend`、`mariadb` 不對外發布 port，只透過 `food_map` 內部網路互相溝通（nginx → backend、backend → mariadb），這樣也能避開主機上其他服務（例如已經在跑的東西）占用 3000／3306 的衝突。`nginx` 也只發布 80，443 目前用不到（TLS 由 Cloudflare Tunnel 處理）。
+> `backend`、`mariadb` 不對外發布 port，只透過 `food_map` 內部網路互相溝通（nginx → backend、backend → mariadb），這樣也能避開主機上其他服務（例如已經在跑的東西）占用 3000／3306 的衝突。`nginx` 對外發布的主機 port 是 `8888`（容器內部監聽的仍是 80，`nginx.conf` 不用改），443 目前用不到（TLS 由 Cloudflare Tunnel 處理）。
 
 > ⚠️ **前端不在本文件範圍內**：靜態前端頁面已改部署在其他平台（Vercel / Cloudflare Pages 等，平台預設網域），不再由這個 repo 的 nginx 服務。`Nginx/html/`、`Nginx/nginx.conf` 中原本服務 `zzowo.com` 靜態頁面的 server block 目前是**停用狀態**（保留但整段註解），為歷史遺留設定，僅供參考。前端實際部署位置與流程請見 [第 2 節](#2-主機與存取資訊)（待補）。
 
 **網域與路由：**
 - `cutefoodmap.zzowo.com/api/*` → nginx 反向代理至 `http://backend:3000/`
 
-**對外連線方式：** 目前不直接對外開放主機 IP，透過 **Cloudflare Tunnel** 將流量導入 nginx。應用程式端已對應設定 `trust proxy` 層級以正確取得來源 IP（見 `Backend/app/app.js`）。
+**對外連線方式：** 不直接對外開放主機 IP，透過 **Cloudflare Tunnel** 將流量導入 nginx。應用程式端已對應設定 `trust proxy` 層級以正確取得來源 IP（見 `Backend/app/app.js`）。cloudflared 的 tunnel 路由（Public Hostname 的 Service / origin URL）需綁定 `http://localhost:8888`，對應 nginx 目前對外發布的主機 port；若之後 `docker-compose.yml` 裡 nginx 的對外 port 再變動，這裡也要一併更新。
 
 **請求流程：**
 ```
 前端（外部平台，獨立部署）
       │  fetch /api/...
       ▼
-Cloudflare Tunnel → nginx (80) → cutefoodmap.zzowo.com/api/* → backend:3000 → mariadb:3306
+Cloudflare Tunnel → nginx（容器內 80，主機對外 8888）→ cutefoodmap.zzowo.com/api/* → backend:3000 → mariadb:3306
 ```
 
 **前端網域：** `https://cutefoodmap.vercel.app`（`nginx.conf` 中的 CORS 規則已對應此網域設定）
@@ -138,9 +138,9 @@ DB_NAME=cute_food_map
 6. 驗證服務：
    ```bash
    docker compose ps                 # 三個容器皆為 Up
-   curl http://localhost/api/        # 透過 nginx 反代打到 backend，應回 "Success"
+   curl http://localhost:8888/api/   # 透過 nginx 反代打到 backend，應回 "Success"
    ```
-   （nginx 目前沒有服務靜態前端頁面，`curl http://localhost/` 打根路徑預期是 404，屬正常現象，見第 1 節說明。`backend` 沒有對外發布 port，無法直接 `curl http://localhost:3000/`，要測 backend 本身可用 `docker exec backend wget -qO- http://localhost:3000/`）
+   （nginx 目前沒有服務靜態前端頁面，`curl http://localhost:8888/` 打根路徑預期是 404，屬正常現象，見第 1 節說明。`backend` 沒有對外發布 port，無法直接 `curl http://localhost:3000/`，要測 backend 本身可用 `docker exec backend wget -qO- http://localhost:3000/`）
    確認 backend 有成功連上資料庫，可用 `docker compose logs backend` 檢查是否出現 `Connected to the database`。
 7. 若是全新資料庫，需接續 [第 6 節](#6-資料庫初始化與資料匯入) 建表與匯入資料。
 
@@ -272,7 +272,7 @@ docker compose restart backend nginx
 1. `docker compose ps` 確認哪個容器沒有 Up
 2. `docker compose logs <service>` 看錯誤訊息
 3. 檢查對應的 `.env` / `docker-compose.yml` 是否有誤（常見：密碼打錯、`DB_HOST` 設成 `localhost`）
-4. 檢查 port 是否被佔用：`sudo lsof -i :80`（`backend`、`mariadb` 若沒對外發布 port 則不用檢查 3000/3306）
+4. 檢查 port 是否被佔用：`sudo lsof -i :8888`（`backend`、`mariadb` 若沒對外發布 port 則不用檢查 3000/3306）
 5. 檢查 volume 掛載路徑權限問題（尤其 `Nginx/logs`、`Nginx/ssl`）
 
 **資料庫損毀：** 依 [第 9 節](#9-資料庫備份與還原) 的備份還原。
@@ -294,10 +294,10 @@ if ($http_origin ~* (^https://cutefoodmap\.vercel\.app$))
 - 確認帳密與 `docker-compose.yml` 中 MariaDB 環境變數一致
 
 **Q：port 衝突，容器起不來**
-主機上 80 需未被其他服務佔用，用 `lsof -i :80` 檢查。`backend`（3000）、`mariadb`（3306）預設不對外發布 port，只在 `food_map` 內部網路溝通，不會佔用主機這兩個 port；如果 `docker-compose.yml` 裡有把它們的 `ports:` 打開，才需要額外檢查 3000／3306 是否被主機上其他服務占用（在共用主機上很常見，例如已經有別的服務用掉這些 port）。
+主機上 8888 需未被其他服務佔用，用 `lsof -i :8888` 檢查。`backend`（3000）、`mariadb`（3306）預設不對外發布 port，只在 `food_map` 內部網路溝通，不會佔用主機這兩個 port；如果 `docker-compose.yml` 裡有把它們的 `ports:` 打開，才需要額外檢查 3000／3306 是否被主機上其他服務占用（在共用主機上很常見，例如已經有別的服務用掉這些 port）。
 
 **Q：Cloudflare Tunnel 打進來變成 502**
-確認 nginx 本身沒問題：`curl http://localhost/api/` 應該要回 `Success`。如果本機測試正常但透過 tunnel 網域打進來是 502，通常是 `cloudflared` 容器/程序連不到 nginx：
+確認 nginx 本身沒問題：`curl http://localhost:8888/api/` 應該要回 `Success`。如果本機測試正常但透過 tunnel 網域打進來是 502，通常是 `cloudflared` 容器/程序連不到 nginx：
 - 若 `cloudflared` 是跑在**獨立的 docker 容器**裡（用 `docker ps` 確認），它預設在自己的 network namespace，跟這個專案的 `food_map` network 是分開的，即使 nginx 本身正常，`cloudflared` 也連不到 `localhost` 或 `nginx` 這個名稱。需要把 `cloudflared` 容器加入 `food_map` network（`docker network connect food_map <cloudflared容器名稱>`），並在 Cloudflare Zero Trust Dashboard 的 Public Hostname 設定裡把 origin service URL 改成 `http://nginx:80`。
 - 若 `cloudflared` 是用 token 方式啟動（`cloudflared tunnel run --token ...`），Public Hostname → origin 的對應是設定在 Cloudflare Dashboard 上，不是本機設定檔，需要登入 Dashboard 確認/修改。
 
