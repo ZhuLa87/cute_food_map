@@ -4,6 +4,7 @@
 	"description": "",
 	"main": "index.js",
 	"scripts": {
+		"seedCategories": "node seed_Categories.js",
 		"importR": "node import_Restaurents.js data/db_Restaurents.csv",
 		"importRC": "node import_RestaurantCategories.js data/RestaurantCategories.csv"
 	},
