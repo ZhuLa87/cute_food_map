@@ -1,12 +1,5 @@
 const rateLimit = require("express-rate-limit");
-const cors = require("cors");
 const Log = require("./log");
-
-// CORS 設定
-const corsOptions = {
-	origin: "*", // 允許所有來源
-	optionsSuccessStatus: 200,
-};
 
 // 速率限制設定
 const limiter = rateLimit({
@@ -29,7 +22,6 @@ const handleExit = (server, message) => {
 };
 
 module.exports = {
-	corsOptions,
 	limiter,
 	handleExit,
 };
