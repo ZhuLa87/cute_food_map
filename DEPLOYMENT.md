@@ -24,7 +24,7 @@
 
 | 容器 | Image | 對外 Port | 說明 |
 |---|---|---|---|
-| `nginx` | nginx:alpine | 8888（容器內部仍為 80） | 純 API 反向代理，將 `/api/` 轉發到 backend |
+| `nginx` | nginx:alpine | 8888（容器內部仍為 80） | 純 API 反向代理，將請求轉發到 backend |
 | `backend` | node:22-alpine | 僅內部網路 | Express API 伺服器，含 Swagger UI |
 | `mariadb` | mariadb:11.4.4 | 僅內部網路 | 資料庫，資料存放於 named volume `db_data` |
 
@@ -33,19 +33,19 @@
 > ⚠️ **前端不在本文件範圍內**：靜態前端頁面已改部署在其他平台（Vercel / Cloudflare Pages 等，平台預設網域），不再由這個 repo 的 nginx 服務。`Nginx/html/`、`Nginx/nginx.conf` 中原本服務 `zzowo.com` 靜態頁面的 server block 目前是**停用狀態**（保留但整段註解），為歷史遺留設定，僅供參考。前端實際部署位置與流程請見 [第 2 節](#2-主機與存取資訊)（待補）。
 
 **網域與路由：**
-- `cutefoodmap.zzowo.com/api/*` → nginx 反向代理至 `http://backend:3000/`
+- `api.example.com/*` → nginx 反向代理至 `http://backend:3000/`
 
 **對外連線方式：** 不直接對外開放主機 IP，透過 **Cloudflare Tunnel** 將流量導入 nginx。應用程式端已對應設定 `trust proxy` 層級以正確取得來源 IP（見 `Backend/app/app.js`）。cloudflared 的 tunnel 路由（Public Hostname 的 Service / origin URL）需綁定 `http://localhost:8888`，對應 nginx 目前對外發布的主機 port；若之後 `docker-compose.yml` 裡 nginx 的對外 port 再變動，這裡也要一併更新。
 
 **請求流程：**
 ```
 前端（外部平台，獨立部署）
-      │  fetch /api/...
+      │  fetch https://api.example.com/...
       ▼
-Cloudflare Tunnel → nginx（容器內 80，主機對外 8888）→ cutefoodmap.zzowo.com/api/* → backend:3000 → mariadb:3306
+Cloudflare Tunnel → nginx（容器內 80，主機對外 8888）→ api.example.com/* → backend:3000 → mariadb:3306
 ```
 
-**前端網域：** `https://cutefoodmap.vercel.app`（`nginx.conf` 中的 CORS 規則已對應此網域設定）
+**前端網域：** `https://cutefoodmap.vercel.app`（正式環境）、`https://restaurant-label-rendering.v0.build`（v0 開發頁面）。兩者皆已對應在 `nginx.conf` 的 CORS 規則中。
 
 ---
 
@@ -58,7 +58,7 @@ Cloudflare Tunnel → nginx（容器內 80，主機對外 8888）→ cutefoodmap
 - **Cloudflare Tunnel 設定：**
   - Tunnel 名稱 / ID：`[TODO: 請填入]`
   - `cloudflared` 設定檔位置：`[TODO: 請填入]`
-  - 對應的 DNS 紀錄（`cutefoodmap.zzowo.com`）管理位置：`[TODO: 請填入，例如 Cloudflare Dashboard 帳號]`
+  - 對應的 DNS 紀錄（`api.example.com`）管理位置：`[TODO: 請填入，例如 Cloudflare Dashboard 帳號]`
   - `cloudflared` 是否也用 systemd / docker 常駐、如何重啟：`[TODO: 請填入]`
 - **專案程式碼在主機上的路徑：** `[TODO: 請填入]`
 - **前端（靜態頁面）部署位置：** Vercel，網域 `https://cutefoodmap.vercel.app`。部署帳號、對應的 Vercel 專案、觸發部署的方式（例如 push 到哪個分支自動部署）：`[TODO: 請填入]`
@@ -94,7 +94,7 @@ Cloudflare Tunnel → nginx（容器內 80，主機對外 8888）→ cutefoodmap
 
 ```
 SERVICE_PORT=3000          # API 伺服器監聽 port
-SERVICE_URL=http://yourdomain.com:3000   # Swagger UI 顯示用的網址
+SERVICE_URL=https://api.example.com   # Swagger UI 顯示用的網址
 DB_HOST=mariadb             # 注意：docker-compose 網路內要用 service 名稱 "mariadb"，不是 localhost
 DB_PORT=3306
 DB_USER=...
@@ -138,7 +138,7 @@ DB_NAME=cute_food_map
 6. 驗證服務：
    ```bash
    docker compose ps                 # 三個容器皆為 Up
-   curl http://localhost:8888/api/   # 透過 nginx 反代打到 backend，應回 "Success"
+   curl http://localhost:8888/       # 透過 nginx 反代打到 backend，應回 "Success"
    ```
    （nginx 目前沒有服務靜態前端頁面，`curl http://localhost:8888/` 打根路徑預期是 404，屬正常現象，見第 1 節說明。`backend` 沒有對外發布 port，無法直接 `curl http://localhost:3000/`，要測 backend 本身可用 `docker exec backend wget -qO- http://localhost:3000/`）
    確認 backend 有成功連上資料庫，可用 `docker compose logs backend` 檢查是否出現 `Connected to the database`。
@@ -282,11 +282,11 @@ docker compose restart backend nginx
 ## 11. 疑難排解 FAQ
 
 **Q：前端呼叫 API 出現 CORS 錯誤**
-檢查 `Nginx/nginx.conf` 中 `cutefoodmap.zzowo.com` server block 的 origin 判斷式：
+檢查 `Nginx/nginx.conf` 中 `api.example.com` server block 的 origin 判斷式：
 ```
-if ($http_origin ~* (^https://cutefoodmap\.vercel\.app$))
+if ($http_origin ~* (^https://cutefoodmap\.vercel\.app$|^https://restaurant-label-rendering\.v0\.build$))
 ```
-只有 `https://cutefoodmap.vercel.app` 這個確切來源會被放行。若前端網域之後變動（例如改用自訂網域，或啟用 Vercel 的 preview deployment 網域），這條規則需要同步更新，改完 `docker compose restart nginx` 生效。另外 backend 本身也有 `cors` middleware（`Backend/app/utils/middleware.js`），兩處設定需一致檢查。
+只有列在這條規則中的來源會被放行（目前為正式前端 `https://cutefoodmap.vercel.app`，以及 v0 前端開發頁面 `https://restaurant-label-rendering.v0.build`）。若前端網域之後變動（例如改用自訂網域、啟用 Vercel 的 preview deployment 網域，或新增/移除開發用網域），這條規則需要同步更新，改完 `docker compose restart nginx` 生效。CORS 標頭統一由 Nginx 處理，backend 本身不再掛載 `cors` middleware（見 `Backend/app/app.js`）。
 
 **Q：backend 連不上資料庫（`ECONNREFUSED` 或 `Connected to the database` 沒出現）**
 - 確認 `Backend/.env` 的 `DB_HOST` 是 `mariadb`（容器名稱），不是 `localhost`
@@ -297,7 +297,7 @@ if ($http_origin ~* (^https://cutefoodmap\.vercel\.app$))
 主機上 8888 需未被其他服務佔用，用 `lsof -i :8888` 檢查。`backend`（3000）、`mariadb`（3306）預設不對外發布 port，只在 `food_map` 內部網路溝通，不會佔用主機這兩個 port；如果 `docker-compose.yml` 裡有把它們的 `ports:` 打開，才需要額外檢查 3000／3306 是否被主機上其他服務占用（在共用主機上很常見，例如已經有別的服務用掉這些 port）。
 
 **Q：Cloudflare Tunnel 打進來變成 502**
-確認 nginx 本身沒問題：`curl http://localhost:8888/api/` 應該要回 `Success`。如果本機測試正常但透過 tunnel 網域打進來是 502，通常是 `cloudflared` 容器/程序連不到 nginx：
+確認 nginx 本身沒問題：`curl http://localhost:8888/` 應該要回 `Success`。如果本機測試正常但透過 tunnel 網域打進來是 502，通常是 `cloudflared` 容器/程序連不到 nginx：
 - 若 `cloudflared` 是跑在**獨立的 docker 容器**裡（用 `docker ps` 確認），它預設在自己的 network namespace，跟這個專案的 `food_map` network 是分開的，即使 nginx 本身正常，`cloudflared` 也連不到 `localhost` 或 `nginx` 這個名稱。需要把 `cloudflared` 容器加入 `food_map` network（`docker network connect food_map <cloudflared容器名稱>`），並在 Cloudflare Zero Trust Dashboard 的 Public Hostname 設定裡把 origin service URL 改成 `http://nginx:80`。
 - 若 `cloudflared` 是用 token 方式啟動（`cloudflared tunnel run --token ...`），Public Hostname → origin 的對應是設定在 Cloudflare Dashboard 上，不是本機設定檔，需要登入 Dashboard 確認/修改。
 
