@@ -1,6 +1,9 @@
 # Docker
 docker-compose.yml
 
+# Nginx（含真實網域與 CORS 設定，範本見 nginx.conf.example）
+Nginx/nginx.conf
+
 logs/
 ssl/
 
