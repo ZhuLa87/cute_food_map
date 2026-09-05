@@ -4,17 +4,16 @@
 
 ## 目錄
 - [1. 架構總覽](#1-架構總覽)
-- [2. 主機與存取資訊](#2-主機與存取資訊)
-- [3. 前置需求](#3-前置需求)
-- [4. 環境變數與機密設定](#4-環境變數與機密設定)
-- [5. 首次部署流程](#5-首次部署流程)
-- [6. 資料庫初始化與資料匯入](#6-資料庫初始化與資料匯入)
-- [7. 日常維運指令](#7-日常維運指令)
-- [8. 更新部署流程](#8-更新部署流程)
-- [9. 資料庫備份與還原](#9-資料庫備份與還原)
-- [10. 緊急回滾與復原](#10-緊急回滾與復原)
-- [11. 疑難排解 FAQ](#11-疑難排解-faq)
-- [12. 安全性注意事項](#12-安全性注意事項)
+- [2. 前置需求](#2-前置需求)
+- [3. 環境變數與機密設定](#3-環境變數與機密設定)
+- [4. 首次部署流程](#4-首次部署流程)
+- [5. 資料庫初始化與資料匯入](#5-資料庫初始化與資料匯入)
+- [6. 日常維運指令](#6-日常維運指令)
+- [7. 更新部署流程](#7-更新部署流程)
+- [8. 資料庫備份與還原](#8-資料庫備份與還原)
+- [9. 緊急回滾與復原](#9-緊急回滾與復原)
+- [10. 疑難排解 FAQ](#10-疑難排解-faq)
+- [11. 安全性注意事項](#11-安全性注意事項)
 
 ---
 
@@ -28,44 +27,30 @@
 | `backend` | node:22-alpine | 僅內部網路 | Express API 伺服器，含 Swagger UI |
 | `mariadb` | mariadb:11.4.4 | 僅內部網路 | 資料庫，資料存放於 named volume `db_data` |
 
-> `backend`、`mariadb` 不對外發布 port，只透過 `food_map` 內部網路互相溝通（nginx → backend、backend → mariadb），這樣也能避開主機上其他服務（例如已經在跑的東西）占用 3000／3306 的衝突。`nginx` 對外發布的主機 port 是 `8888`（容器內部監聽的仍是 80，`nginx.conf` 不用改），443 目前用不到（TLS 由 Cloudflare Tunnel 處理）。
+> `backend`、`mariadb` 不對外發布 port，只透過 `food_map` 內部網路互相溝通（nginx → backend、backend → mariadb），這樣也能避開主機上其他服務（例如已經在跑的東西）占用 3000／3306 的衝突。`nginx` 對外發布的主機 port 範例為 `8888`（容器內部監聽的仍是 80，`nginx.conf` 不用改），443 目前用不到（若 TLS 交由 Cloudflare Tunnel 等反向代理處理）。
 
-> ⚠️ **前端不在本文件範圍內**：靜態前端頁面已改部署在其他平台（Vercel / Cloudflare Pages 等，平台預設網域），不再由這個 repo 的 nginx 服務。`Nginx/html/`、`Nginx/nginx.conf` 中原本服務 `zzowo.com` 靜態頁面的 server block 目前是**停用狀態**（保留但整段註解），為歷史遺留設定，僅供參考。前端實際部署位置與流程請見 [第 2 節](#2-主機與存取資訊)（待補）。
+> ⚠️ **前端不在本文件範圍內**：靜態前端頁面已改部署在其他平台（Vercel / Cloudflare Pages 等），不再由這個 repo 的 nginx 服務。`Nginx/html/` 中原本服務靜態頁面的內容為歷史遺留，僅供參考。
+>
+> ⚠️ **`Nginx/nginx.conf` 為本機／主機專屬設定**（含實際網域、CORS 允許來源），已列入 `.gitignore` 不進版控，範本見 `Nginx/nginx.conf.example`，用法與 `docker-compose.yml` / `docker-compose.example.yml` 相同（見 [第 3 節](#3-環境變數與機密設定)）。以下說明以範例網域表示。
 
-**網域與路由：**
-- `api.example.com/*` → nginx 反向代理至 `http://backend:3000/`
+**網域與路由（範例）：**
+- `api.yourdomain.com/*` → nginx 反向代理至 `http://backend:3000/`
 
-**對外連線方式：** 不直接對外開放主機 IP，透過 **Cloudflare Tunnel** 將流量導入 nginx。應用程式端已對應設定 `trust proxy` 層級以正確取得來源 IP（見 `Backend/app/app.js`）。cloudflared 的 tunnel 路由（Public Hostname 的 Service / origin URL）需綁定 `http://localhost:8888`，對應 nginx 目前對外發布的主機 port；若之後 `docker-compose.yml` 裡 nginx 的對外 port 再變動，這裡也要一併更新。
+**對外連線方式：** 可選擇不直接對外開放主機 IP，改用 **Cloudflare Tunnel**（或其他反向代理／隧道服務）將流量導入 nginx。應用程式端已對應設定 `trust proxy` 層級以正確取得來源 IP（見 `Backend/app/app.js`，實際層級需依實際代理層數調整）。若使用 tunnel，其路由（Public Hostname 的 Service / origin URL）需綁定 `http://localhost:<nginx對外port>`；若之後 `docker-compose.yml` 裡 nginx 的對外 port 變動，這裡也要一併更新。
 
-**請求流程：**
+**請求流程（範例）：**
 ```
 前端（外部平台，獨立部署）
-      │  fetch https://api.example.com/...
+      │  fetch https://api.yourdomain.com/...
       ▼
-Cloudflare Tunnel → nginx（容器內 80，主機對外 8888）→ api.example.com/* → backend:3000 → mariadb:3306
+（反向代理／Tunnel，可選）→ nginx（容器內 80，主機對外 8888）→ api.yourdomain.com/* → backend:3000 → mariadb:3306
 ```
 
-**前端網域：** `https://cutefoodmap.vercel.app`（正式環境）、`https://restaurant-label-rendering.v0.build`（v0 開發頁面）。兩者皆已對應在 `nginx.conf` 的 CORS 規則中。
+**前端網域：** 實際部署網域請見主機上的 `Nginx/nginx.conf`（CORS 允許來源清單）與前端平台（如 Vercel）的專案設定。
 
 ---
 
-## 2. 主機與存取資訊
-
-> ⚠️ 以下為交接時需要補齊的實際資訊，本文件先留下欄位骨架。
-
-- **主機位置 / 供應商：** `[TODO: 請填入]`
-- **SSH 連線方式（帳號、Port、金鑰位置）：** `[TODO: 請填入]`
-- **Cloudflare Tunnel 設定：**
-  - Tunnel 名稱 / ID：`[TODO: 請填入]`
-  - `cloudflared` 設定檔位置：`[TODO: 請填入]`
-  - 對應的 DNS 紀錄（`api.example.com`）管理位置：`[TODO: 請填入，例如 Cloudflare Dashboard 帳號]`
-  - `cloudflared` 是否也用 systemd / docker 常駐、如何重啟：`[TODO: 請填入]`
-- **專案程式碼在主機上的路徑：** `[TODO: 請填入]`
-- **前端（靜態頁面）部署位置：** Vercel，網域 `https://cutefoodmap.vercel.app`。部署帳號、對應的 Vercel 專案、觸發部署的方式（例如 push 到哪個分支自動部署）：`[TODO: 請填入]`
-
----
-
-## 3. 前置需求
+## 2. 前置需求
 
 主機上需安裝：
 - Docker Engine
@@ -78,23 +63,24 @@ Cloudflare Tunnel → nginx（容器內 80，主機對外 8888）→ api.example
 
 ---
 
-## 4. 環境變數與機密設定
+## 3. 環境變數與機密設定
 
-專案中有三份機密／環境設定檔，皆已加入 `.gitignore`，**不會**進版控，僅存在於主機上：
+專案中有四份機密／環境設定檔，皆已加入 `.gitignore`，**不會**進版控，僅存在於主機上：
 
 | 檔案 | 用途 | 範本 |
 |---|---|---|
 | `docker-compose.yml` | 定義三個容器，含 MariaDB 帳密 | `docker-compose.example.yml` |
 | `Backend/.env` | API 伺服器連線資料庫用的帳密、port | `Backend/.env_example` |
 | `DataBase/.env` | 匯入資料腳本連線資料庫用 | `DataBase/.env_example` |
+| `Nginx/nginx.conf` | 實際對外網域、CORS 允許來源等 | `Nginx/nginx.conf.example` |
 
-**機密存放與交接方式：** 密碼僅以明文存在主機上的上述檔案中，沒有額外的密碼管理工具。維運交接時請直接在主機上開啟這三個檔案查看目前設定，本文件不重複記錄實際密碼內容。若要輪替密碼，需同步更新 `docker-compose.yml`（MariaDB 環境變數）與 `Backend/.env`（`DB_PASSWORD`）並重啟對應容器（見 [第 8 節](#8-更新部署流程)）。
+**機密存放與交接方式：** 密碼僅以明文存在主機上的上述檔案中，沒有額外的密碼管理工具。維運交接時請直接在主機上開啟這四個檔案查看目前設定，本文件不重複記錄實際密碼內容。若要輪替密碼，需同步更新 `docker-compose.yml`（MariaDB 環境變數）與 `Backend/.env`（`DB_PASSWORD`）並重啟對應容器（見 [第 7 節](#7-更新部署流程)）。
 
 `Backend/.env` 主要欄位：
 
 ```
 SERVICE_PORT=3000          # API 伺服器監聽 port
-SERVICE_URL=https://api.example.com   # Swagger UI 顯示用的網址
+SERVICE_URL=https://api.yourdomain.com   # Swagger UI 顯示用的網址（請改成實際網域）
 DB_HOST=mariadb             # 注意：docker-compose 網路內要用 service 名稱 "mariadb"，不是 localhost
 DB_PORT=3306
 DB_USER=...
@@ -106,12 +92,12 @@ DB_NAME=cute_food_map
 
 ---
 
-## 5. 首次部署流程
+## 4. 首次部署流程
 
 1. Clone 專案到主機：
    ```bash
-   git clone git@github.com:[REDACTED]/Project-CF.git
-   cd Project-CF
+   git clone git@github.com:ZhuLa87/cute_food_map.git
+   cd cute_food_map
    ```
 2. 建立 `docker-compose.yml`：
    ```bash
@@ -129,7 +115,7 @@ DB_NAME=cute_food_map
    ```bash
    cp DataBase/.env_example DataBase/.env
    ```
-   `mariadb` 預設不對外發布 3306（見上方 ⚠️ 說明），所以匯入腳本**無法**直接在主機上跑並連到 `localhost:3306`。實際匯入方式見 [第 6 節](#6-資料庫初始化與資料匯入)。
+   `mariadb` 預設不對外發布 3306（見上方 ⚠️ 說明），所以匯入腳本**無法**直接在主機上跑並連到 `localhost:3306`。實際匯入方式見 [第 5 節](#5-資料庫初始化與資料匯入)。
 5. 啟動所有容器：
    ```bash
    ./dockerComposeRun.sh
@@ -142,11 +128,11 @@ DB_NAME=cute_food_map
    ```
    （nginx 目前沒有服務靜態前端頁面，`curl http://localhost:8888/` 打根路徑預期是 404，屬正常現象，見第 1 節說明。`backend` 沒有對外發布 port，無法直接 `curl http://localhost:3000/`，要測 backend 本身可用 `docker exec backend wget -qO- http://localhost:3000/`）
    確認 backend 有成功連上資料庫，可用 `docker compose logs backend` 檢查是否出現 `Connected to the database`。
-7. 若是全新資料庫，需接續 [第 6 節](#6-資料庫初始化與資料匯入) 建表與匯入資料。
+7. 若是全新資料庫，需接續 [第 5 節](#5-資料庫初始化與資料匯入) 建表與匯入資料。
 
 ---
 
-## 6. 資料庫初始化與資料匯入
+## 5. 資料庫初始化與資料匯入
 
 資料表結構定義於 `DataBase/SQL/create_tables.sql`（`Restaurants`、`Categories`、`RestaurantCategories`、`RestaurantHours` 四張表）。
 
@@ -158,7 +144,7 @@ docker exec -i mariadb mariadb -u root -p cute_food_map < DataBase/SQL/create_ta
 
 **匯入 CSV 資料：**
 
-`mariadb` 預設不對外發布 3306（見第 5 節 ⚠️ 說明），所以匯入腳本不能直接在主機上跑並連到 `localhost:3306`。有兩種作法，擇一：
+`mariadb` 預設不對外發布 3306（見第 4 節 ⚠️ 說明），所以匯入腳本不能直接在主機上跑並連到 `localhost:3306`。有兩種作法，擇一：
 
 - **方式 A（推薦，不需開 port）：** 用一個臨時容器跑匯入腳本，讓它透過 `food_map` 內部網路連 `mariadb`：
   ```bash
@@ -184,7 +170,7 @@ docker exec -i mariadb mariadb -u root -p cute_food_map < DataBase/SQL/create_ta
 
 ---
 
-## 7. 日常維運指令
+## 6. 日常維運指令
 
 ```bash
 # 重啟全部容器（停止舊容器 + 重新建立）
@@ -207,7 +193,7 @@ docker exec -it mariadb mariadb -u root -p
 
 ---
 
-## 8. 更新部署流程
+## 7. 更新部署流程
 
 程式碼更新（`git pull` 後）：
 
@@ -227,15 +213,15 @@ docker exec -it mariadb mariadb -u root -p
    ```bash
    ./dockerComposeRun.sh
    ```
-5. 更新後照 [第 5 節步驟 6](#5-首次部署流程) 再次驗證服務正常。
+5. 更新後照 [第 4 節步驟 6](#4-首次部署流程) 再次驗證服務正常。
 
-> 注意：MariaDB 容器版本若升級，資料仍保留在 `db_data` volume 中，但跨大版本升級前建議先完成 [第 9 節](#9-資料庫備份與還原) 的備份。
+> 注意：MariaDB 容器版本若升級，資料仍保留在 `db_data` volume 中，但跨大版本升級前建議先完成 [第 8 節](#8-資料庫備份與還原) 的備份。
 
-> ⚠️ **前端更新不在這個流程裡**：前端部署在外部平台（見 [第 2 節](#2-主機與存取資訊)），程式碼更新、重新部署由該平台的流程處理，跟這裡的 `docker compose` 操作無關。
+> ⚠️ **前端更新不在這個流程裡**：前端部署在外部平台，程式碼更新、重新部署由該平台的流程處理，跟這裡的 `docker compose` 操作無關。
 
 ---
 
-## 9. 資料庫備份與還原
+## 8. 資料庫備份與還原
 
 **備份（mariadb-dump）：**
 ```bash
@@ -258,7 +244,7 @@ docker run --rm -v cute_food_map_db_data:/data -v $(pwd):/backup alpine \
 
 ---
 
-## 10. 緊急回滾與復原
+## 9. 緊急回滾與復原
 
 **程式碼／設定回滾：**
 ```bash
@@ -275,18 +261,18 @@ docker compose restart backend nginx
 4. 檢查 port 是否被佔用：`sudo lsof -i :8888`（`backend`、`mariadb` 若沒對外發布 port 則不用檢查 3000/3306）
 5. 檢查 volume 掛載路徑權限問題（尤其 `Nginx/logs`、`Nginx/ssl`）
 
-**資料庫損毀：** 依 [第 9 節](#9-資料庫備份與還原) 的備份還原。
+**資料庫損毀：** 依 [第 8 節](#8-資料庫備份與還原) 的備份還原。
 
 ---
 
-## 11. 疑難排解 FAQ
+## 10. 疑難排解 FAQ
 
 **Q：前端呼叫 API 出現 CORS 錯誤**
-檢查 `Nginx/nginx.conf` 中 `api.example.com` server block 的 origin 判斷式：
+檢查 `Nginx/nginx.conf`（主機上的實際檔案，範本見 `Nginx/nginx.conf.example`）中 API server block 的 origin 判斷式，例如：
 ```
-if ($http_origin ~* (^https://cutefoodmap\.vercel\.app$|^https://restaurant-label-rendering\.v0\.build$))
+if ($http_origin ~* (^https://frontend\.yourdomain\.com$))
 ```
-只有列在這條規則中的來源會被放行（目前為正式前端 `https://cutefoodmap.vercel.app`，以及 v0 前端開發頁面 `https://restaurant-label-rendering.v0.build`）。若前端網域之後變動（例如改用自訂網域、啟用 Vercel 的 preview deployment 網域，或新增/移除開發用網域），這條規則需要同步更新，改完 `docker compose restart nginx` 生效。CORS 標頭統一由 Nginx 處理，backend 本身不再掛載 `cors` middleware（見 `Backend/app/app.js`）。
+只有列在這條規則中的來源會被放行。若前端網域之後變動（例如改用自訂網域、啟用 Vercel 的 preview deployment 網域，或新增/移除開發用網域），這條規則需要同步更新，改完 `docker compose restart nginx` 生效。CORS 標頭統一由 Nginx 處理，backend 本身不再掛載 `cors` middleware（見 `Backend/app/app.js`）。
 
 **Q：backend 連不上資料庫（`ECONNREFUSED` 或 `Connected to the database` 沒出現）**
 - 確認 `Backend/.env` 的 `DB_HOST` 是 `mariadb`（容器名稱），不是 `localhost`
@@ -306,7 +292,7 @@ if ($http_origin ~* (^https://cutefoodmap\.vercel\.app$|^https://restaurant-labe
 
 ---
 
-## 12. 安全性注意事項
+## 11. 安全性注意事項
 
 - `docker-compose.yml`、`Backend/.env`、`DataBase/.env` 皆已列入 `.gitignore`，**切勿**移除 gitignore 規則或手動 commit 這些檔案。
 - 各 `.env_example` / `docker-compose.example.yml` 僅供參考，內含的帳密只能是佔位符，不可填入真實密碼後提交。

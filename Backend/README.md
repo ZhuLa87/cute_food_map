@@ -8,18 +8,18 @@
 
 1. 複製專案到本地端：
    ```bash
-   git clone git@github.com:[REDACTED]/Project-CF.git
+   git clone git@github.com:ZhuLa87/cute_food_map.git
    ```
 2. 進入專案目錄：
    ```bash
-   cd Project-CF/Backend/
+   cd cute_food_map/Backend/
    ```
 3. 安裝所需的套件：
    ```bash
    pnpm install
    ```
 4. 設定環境變數：
-   - 複製 `.env.example` 並重新命名為 `.env`
+   - 複製 `.env_example` 並重新命名為 `.env`
    - 根據需要修改 `.env` 文件中的設定
 
 ## 使用說明
@@ -28,9 +28,9 @@
    ```bash
    pnpm start
    ```
-2. 伺服器啟動後，可以透過以下 URL 訪問 API：
+2. 伺服器啟動後，可以透過以下 URL 訪問 API（port 依 `.env` 中 `SERVICE_PORT` 設定，預設 3000）：
    ```
-   http://localhost:22931/api/
+   http://localhost:3000/v1/restaurants
    ```
 
 ## API 文件
@@ -38,5 +38,5 @@
 啟動伺服器後，可以透過以下 URL 訪問 Swagger UI 以查看 API 文件：
 
 ```
-http://localhost:22931/api-docs
+http://localhost:3000/api-docs
 ```

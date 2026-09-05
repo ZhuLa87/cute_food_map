@@ -1,4 +1,4 @@
-# Project-CF DataBase
+# Cute Food Map DataBase
 
 建立一個餐廳資料庫，並從 CSV 檔案匯入餐廳資料。本範例使用 MariaDB。
 
