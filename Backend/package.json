@@ -1,5 +1,5 @@
 {
-	"name": "project-cf-backend",
+	"name": "cute-food-map-backend",
 	"version": "1.0.0",
 	"description": "Food map backend with Express and MariaDB",
 	"main": "app/app.js",
